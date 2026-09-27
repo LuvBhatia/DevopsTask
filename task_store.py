@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from threading import Lock
-from typing import Dict, List
 
 
 @dataclass
@@ -17,11 +16,11 @@ class TaskStore:
     """A tiny CRUD store with deterministic validation for unit testing."""
 
     def __init__(self) -> None:
-        self._tasks: Dict[int, Task] = {}
+        self._tasks: dict[int, Task] = {}
         self._next_id = 1
         self._lock = Lock()
 
-    def list_tasks(self) -> List[dict]:
+    def list_tasks(self) -> list[dict]:
         with self._lock:
             return [asdict(self._tasks[key]) for key in sorted(self._tasks)]
 
@@ -61,7 +60,7 @@ class TaskStore:
     @staticmethod
     def _validate_title(title: str) -> str:
         if not isinstance(title, str):
-            raise ValueError("title must be a string")
+            raise TypeError("title must be a string")
         cleaned = title.strip()
         if not cleaned:
             raise ValueError("title must not be empty")

@@ -17,14 +17,13 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock
-from typing import Dict, Tuple
 from urllib.parse import urlparse
 
 from task_store import TaskStore
 
 STORE = TaskStore()
 REQUEST_LOCK = Lock()
-REQUEST_COUNTS: Dict[Tuple[str, str, int], int] = {}
+REQUEST_COUNTS: dict[tuple[str, str, int], int] = {}
 DEMO_ALERT = False
 
 
@@ -49,8 +48,7 @@ def metrics_text() -> str:
         for (method, path, status), count in sorted(REQUEST_COUNTS.items()):
             safe_path = path.replace('"', '\\"')
             lines.append(
-                'tasktracker_http_requests_total{method="%s",path="%s",status="%s"} %s'
-                % (method, safe_path, status, count)
+                f'tasktracker_http_requests_total{{method="{method}",path="{safe_path}",status="{status}"}} {count}'
             )
     return "\n".join(lines) + "\n"
 
@@ -59,7 +57,7 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
     server_version = "TaskTracker/1.0"
 
     def log_message(self, fmt: str, *args) -> None:
-        print("%s - %s" % (self.address_string(), fmt % args), flush=True)
+        print(f"{self.address_string()} - {fmt % args}", flush=True)
 
     def _json_body(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
@@ -71,7 +69,7 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ValueError("request body must be valid JSON") from exc
         if not isinstance(body, dict):
-            raise ValueError("request body must be a JSON object")
+            raise TypeError("request body must be a JSON object")
         return body
 
     def _send_json(self, status: int, payload: dict | list) -> None:
@@ -99,7 +97,7 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
             return int(pieces[1])
         return None
 
-    def do_GET(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
+    def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/health":
             self._send_json(200, {"status": "ok", "environment": os.getenv("APP_ENV", "development")})
@@ -119,7 +117,7 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
             return
         self._send_json(404, {"error": "not found"})
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         global DEMO_ALERT
         path = urlparse(self.path).path
         try:
@@ -136,10 +134,10 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"demo_alert": False})
                 return
             self._send_json(404, {"error": "not found"})
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             self._send_json(400, {"error": str(exc)})
 
-    def do_PUT(self) -> None:  # noqa: N802
+    def do_PUT(self) -> None:
         path = urlparse(self.path).path
         task_id = self._task_id(path)
         if task_id is None:
@@ -153,10 +151,10 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
             )
         except KeyError as exc:
             self._send_json(404, {"error": str(exc)})
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             self._send_json(400, {"error": str(exc)})
 
-    def do_DELETE(self) -> None:  # noqa: N802
+    def do_DELETE(self) -> None:
         path = urlparse(self.path).path
         task_id = self._task_id(path)
         if task_id is None:
@@ -168,7 +166,7 @@ class TaskTrackerHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": str(exc)})
 
 
-def create_server(host: str = "0.0.0.0", port: int = 8000) -> ThreadingHTTPServer:
+def create_server(host: str = "0.0.0.0", port: int = 8000) -> ThreadingHTTPServer:  # nosec B104
     return ThreadingHTTPServer((host, port), TaskTrackerHandler)
 
 

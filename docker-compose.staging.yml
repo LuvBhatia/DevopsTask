@@ -1,0 +1,9 @@
+services:
+  app:
+    image: ${APP_IMAGE}
+    container_name: task-tracker-staging
+    environment:
+      APP_ENV: staging
+    ports:
+      - "8081:8000"
+    restart: unless-stopped

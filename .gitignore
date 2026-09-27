@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+dist/
+reports/*.json
+reports/*.xml
+monitoring/alerts.log

@@ -1,0 +1,20 @@
+groups:
+  - name: task-tracker-alerts
+    rules:
+      - alert: TaskTrackerDown
+        expr: up{job="task-tracker"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Task Tracker production service is down"
+          description: "Prometheus cannot scrape the production API."
+
+      - alert: TaskTrackerDemoAlert
+        expr: tasktracker_demo_alert == 1
+        for: 5s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Task Tracker demo alert fired"
+          description: "Intentional incident simulation used to prove alert delivery."
